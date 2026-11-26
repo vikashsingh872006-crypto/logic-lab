@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080d1c">
+<title>LogicLab | Boolean Logic Simulator</title>
+<style>
+:root{--bg:#070b19;--panel:#111a2e;--line:#263653;--text:#edf4ff;--muted:#9aabc6;--cyan:#5ee7f5;--violet:#a78bfa;--green:#53e0a1;--red:#ff7285;--idle:#8fa3c8}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh;overflow-x:hidden;position:relative}
+
+/* ---------- animated background ---------- */
+.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.bg::before{content:"";position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse at 50% 20%,#000 0,transparent 75%);-webkit-mask-image:radial-gradient(ellipse at 50% 20%,#000 0,transparent 75%)}
+.blob{position:absolute;width:520px;height:520px;border-radius:50%;filter:blur(90px);opacity:.38;animation:drift 22s ease-in-out infinite alternate}
+.blob.b1{background:#2a5cff;top:-160px;left:-120px}
+.blob.b2{background:#8a4dff;top:10%;right:-180px;animation-delay:-7s}
+.blob.b3{background:#12c7b5;bottom:-220px;left:30%;animation-delay:-13s;opacity:.22}
+@keyframes drift{to{transform:translate(70px,50px) scale(1.15)}}
+
+/* ---------- header / hero ---------- */
+header{max-width:1180px;margin:auto;padding:28px 22px 10px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--cyan),var(--violet));display:grid;place-items:center;box-shadow:0 8px 30px #5ee7f544;animation:float 4s ease-in-out infinite}
+.logo svg{width:28px;height:28px}
+@keyframes float{50%{transform:translateY(-3px) rotate(-3deg)}}
+.brand h1{font-size:21px;margin:0;letter-spacing:.3px}
+.brand p{margin:3px 0 0;color:var(--muted);font-size:11px;letter-spacing:1.2px}
+.tag{border:1px solid #39516f;background:#14213a99;backdrop-filter:blur(6px);color:#c8d8f2;padding:8px 12px;border-radius:999px;font-size:12px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+main{max-width:1180px;margin:auto;padding:8px 22px 48px}
+.hero{padding:26px 0 26px}
+.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+.hero h2{font-size:clamp(32px,5.4vw,56px);line-height:1.05;margin:10px 0 14px;letter-spacing:-1.8px}
+.hero h2 span{background:linear-gradient(90deg,var(--cyan),#b9a3ff,var(--cyan));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:200% center}}
+.hero p{max-width:690px;color:var(--muted);line-height:1.65;margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.chip{font-size:12px;color:#c6d6ef;border:1px solid #2c4262;background:#0f1a30aa;padding:7px 12px;border-radius:999px}
+
+/* ---------- panels ---------- */
+.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(290px,.85fr);gap:18px}
+.panel,.sym-card,.info-card{position:relative;background:linear-gradient(160deg,#14213aee,#0e1729f2);border:1px solid var(--line);border-radius:20px;box-shadow:0 16px 45px #0004;overflow:hidden}
+.panel{padding:20px}
+.panel::after,.sym-card::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;background:radial-gradient(380px circle at var(--mx,50%) var(--my,50%),#5ee7f514,transparent 60%)}
+.panel:hover::after,.sym-card:hover::after{opacity:1}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.panel h3{font-size:16px;margin:0}
+.sub{font-size:12px;color:var(--muted);margin-top:5px}
+
+/* gate tabs with symbol icons */
+.gate-tabs{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:18px}
+.gate-btn{border:1px solid var(--line);background:#0d172a;color:#b8c7df;padding:8px 4px 7px;border-radius:12px;font-weight:700;font-size:12px;cursor:pointer;transition:.2s;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:inherit}
+.gate-btn svg{width:100%;max-width:62px;height:auto}
+.gate-btn:hover{border-color:#6e83a6;transform:translateY(-2px)}
+.gate-btn.active{background:linear-gradient(135deg,#17465a,#3b2c68);border-color:var(--cyan);color:#fff;box-shadow:0 0 24px #5ee7f524}
+.gate-btn.active .gbody,.gate-btn.active .gline{stroke:var(--cyan)}
+.gate-btn:focus-visible,.switch:focus-visible,.btn:focus-visible,.sym-card:focus-visible{outline:2px solid #fff;outline-offset:3px}
+
+/* simulator */
+.sim-grid{display:grid;grid-template-columns:minmax(110px,.7fr) minmax(220px,1.9fr) minmax(110px,.7fr);align-items:center;gap:10px;min-height:230px;background:#0a1324;border:1px solid #243550;border-radius:16px;padding:18px;position:relative;overflow:hidden}
+.sim-grid::before{content:"";position:absolute;inset:0;background-image:radial-gradient(#ffffff0d 1px,transparent 1px);background-size:18px 18px;pointer-events:none}
+.inputs{display:grid;gap:18px;position:relative}
+.input-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.input-name{font-size:13px;color:#cbd8ed;font-weight:700}
+.switch{width:60px;height:32px;border:1px solid #425574;border-radius:30px;background:#263650;padding:0;cursor:pointer;position:relative;transition:.25s;flex:none}
+.switch::after{content:"";width:24px;height:24px;background:#dce7f8;border-radius:50%;position:absolute;left:3px;top:3px;transition:.25s cubic-bezier(.5,1.6,.5,1)}
+.switch.on{background:#116b72;border-color:var(--cyan);box-shadow:0 0 18px #5ee7f544}
+.switch.on::after{left:31px;background:var(--cyan)}
+.bit{font:800 11px ui-monospace,monospace;position:absolute;top:50%;transform:translateY(-50%);color:#9fe9f1;left:10px;transition:.25s}
+.switch:not(.on) .bit{left:auto;right:11px;color:#8ea0be}
+.gate-wrap{display:grid;place-items:center;position:relative}
+.gate-wrap svg.circuit{width:100%;max-width:330px;overflow:visible;animation:pop .4s cubic-bezier(.3,1.5,.5,1)}
+@keyframes pop{from{opacity:0;transform:scale(.85)}}
+
+/* gate svg styling (shared by simulator, tabs and gallery) */
+.wire{stroke:#4b6082;stroke-width:3.2;fill:none;stroke-linecap:round;transition:stroke .25s}
+.wire.hot{stroke:var(--cyan);filter:drop-shadow(0 0 4px var(--cyan))}
+.wire.hot.out{stroke:var(--green);filter:drop-shadow(0 0 5px var(--green))}
+.flow{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-dasharray:1 15;opacity:0}
+.flow.hot{opacity:.95;animation:flow .75s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-16}}
+.gbody,.gline{fill:none;stroke:var(--idle);stroke-width:3.4;stroke-linejoin:round;stroke-linecap:round;transition:stroke .25s,filter .25s}
+.gbody{fill:url(#gfill)}
+.gbubble{fill:#0a1324;stroke:var(--idle);stroke-width:3.4;transition:stroke .25s}
+.lit .gbody,.lit .gline,.lit .gbubble{stroke:var(--green)}
+.lit .gbody,.lit .gline{filter:drop-shadow(0 0 7px #53e0a199)}
+.pin{fill:#cfe0fb;font:800 13px Inter,system-ui,sans-serif}
+.pin.x{fill:var(--green)}
+.mini .wire,.mini .gbody,.mini .gline,.mini .gbubble{stroke-width:8}
+.mini .gbody,.mini .gline,.mini .gbubble{stroke:#aebddb}
+
+.output{display:grid;justify-items:center;gap:8px;position:relative}
+.output-label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1.5px}
+.output-value{width:78px;height:78px;border-radius:24px;display:grid;place-items:center;font-size:36px;font-weight:900;background:#26334b;border:1px solid #52617c;transition:.3s;color:#7f90ad}
+.output-value.one{background:linear-gradient(145deg,#0f8a6c,#174b68);border-color:var(--green);box-shadow:0 0 30px #53e0a144;color:#e6fff5;animation:glow 1.8s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 48px #53e0a177}}
+.output-value.bump{animation:bump .35s}
+@keyframes bump{40%{transform:scale(1.18) rotate(-4deg)}}
+.output-caption{font-size:12px;color:var(--muted)}
+
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}
+.btn{border:1px solid #3a5272;background:#0f1b31;color:#dbe8ff;padding:9px 14px;border-radius:11px;font:700 13px inherit;font-family:inherit;cursor:pointer;transition:.2s}
+.btn:hover{border-color:var(--cyan);transform:translateY(-1px)}
+.btn.on{background:linear-gradient(135deg,#0f6a74,#4a2f8a);border-color:var(--cyan)}
+.hint{font-size:11.5px;color:#7f92b0;margin-left:auto}
+kbd{font:700 11px ui-monospace,monospace;background:#1a2a45;border:1px solid #34496b;border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:#cfe0fb}
+
+.result-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.metric{background:#0c1629;border:1px solid #263650;border-radius:13px;padding:12px}
+.metric span{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
+.metric strong{font-size:15px}
+
+/* truth table */
+.truth{margin-top:18px}
+.truth table{width:100%;border-collapse:collapse;text-align:center;font:13px ui-monospace,monospace}
+.truth th{color:var(--muted);font-weight:700;background:#0b1629}
+.truth td,.truth th{padding:11px 8px;border-bottom:1px solid #263650}
+.truth tbody tr{cursor:pointer;transition:background .2s}
+.truth tbody tr:hover{background:#12223b}
+.truth tr.current td{background:#164052;color:#eaffff;font-weight:900}
+.truth .out{color:var(--green);font-weight:900}
+
+/* explain side panel */
+.explain{display:grid;gap:14px;align-content:start}
+.formula{font:700 22px ui-monospace,monospace;color:var(--cyan);background:#0b1729;border:1px solid #2c4961;padding:14px;border-radius:13px;text-align:center}
+.description{color:#c1cfe4;line-height:1.6;font-size:13px;margin:0}
+.explain-sym{display:grid;place-items:center;background:#0a1324;border:1px solid #243550;border-radius:14px;padding:10px 6px}
+.explain-sym svg{width:100%;max-width:230px}
+.fade{animation:fade .4s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+.try{padding:13px;border:1px solid #31516a;background:#10263a;border-radius:13px}
+
+/* timing diagram */
+.timing{margin-top:18px}
+.timing svg{width:100%;height:auto;display:block;background:#0a1324;border:1px solid #243550;border-radius:14px}
+.tl-label{font:800 12px Inter,system-ui,sans-serif}
+.tl-grid{stroke:#1c2b45;stroke-width:1}
+
+/* symbol gallery */
+.section-title{margin:44px 0 6px;font-size:26px;letter-spacing:-.6px}
+.section-sub{color:var(--muted);font-size:14px;margin:0 0 20px}
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.sym-card{padding:16px 14px 14px;cursor:pointer;transition:transform .25s,border-color .25s;display:flex;flex-direction:column;gap:8px;text-align:center;font-family:inherit;color:inherit}
+.sym-card:hover{transform:translateY(-4px);border-color:#4d7391}
+.sym-card.active{border-color:var(--cyan);box-shadow:0 0 26px #5ee7f522}
+.sym-card svg{width:100%;height:auto;background:#0a1324;border-radius:12px;padding:6px}
+.sym-card h4{margin:2px 0 0;font-size:16px;letter-spacing:.5px}
+.sym-card code{font:700 12px ui-monospace,monospace;color:var(--cyan)}
+.sym-card small{color:var(--muted);font-size:12px;line-height:1.45}
+.sym-card:hover .gbody,.sym-card:hover .gline,.sym-card:hover .gbubble{stroke:var(--cyan)}
+.sym-card:hover .wire{stroke:#6f8cb5}
+
+.bottom{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:30px}
+.info-card{padding:20px}
+.info-card h3{margin:0 0 9px;font-size:15px}
+.info-card p,.info-card li{color:var(--muted);font-size:13px;line-height:1.65}
+.info-card ul{padding-left:18px;margin:8px 0 0}
+.footer{text-align:center;color:#7184a2;font-size:12px;padding:34px 0 0}
+
+/* reveal on scroll */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s,transform .6s}
+.reveal.in{opacity:1;transform:none}
+
+@media(max-width:900px){.gallery{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:800px){.layout,.bottom{grid-template-columns:1fr}.hint{display:none}}
+@media(max-width:600px){.sim-grid{grid-template-columns:1fr 1fr;padding:14px}.gate-wrap{grid-column:1/-1;grid-row:2}.output{grid-column:2;grid-row:1}.inputs{grid-column:1;grid-row:1}}
+@media(max-width:560px){.gate-tabs{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:480px){header{padding-top:20px}.tag.hide-s{display:none}main{padding-left:14px;padding-right:14px}.panel{padding:15px}.result-strip{gap:6px}.metric{padding:9px}.metric strong{font-size:13px}.gallery{gap:10px}.sym-card{padding:12px 10px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="gfill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22385c"/><stop offset="1" stop-color="#141f38"/></linearGradient></defs></svg>
+
+<header>
+  <div class="brand">
+    <div class="logo"><svg viewBox="0 0 40 40" fill="none" stroke="#081120" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"><path d="M8 8h12a12 12 0 0 1 0 24H8z"/></svg></div>
+    <div><h1>LogicLab</h1><p>BOOLEAN LOGIC • INTERACTIVE LEARNING</p></div>
+  </div>
+  <div class="tag hide-s"><span class="dot"></span>LIVE · 7 GATES</div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="eyebrow">Explore · Toggle · Understand</div>
+  <h2>Logic gates, <span>made visual.</span></h2>
+  <p>Discover how digital circuits make decisions. Pick a gate, flip the inputs and watch the signal travel through the wires, the output light up and the timing diagram draw itself.</p>
+  <div class="chips"><span class="chip">⚡ Animated signal flow</span><span class="chip">📈 Live timing diagram</span><span class="chip">🧪 Clickable truth tables</span><span class="chip">⌨️ Keyboard shortcuts</span></div>
+</section>
+
+<div class="layout">
+<section class="panel reveal" id="simulator">
+  <div class="panel-head"><div><h3>Gate simulator</h3><div class="sub">Choose a logic gate to begin experimenting</div></div><span class="tag"><span class="dot"></span>LIVE SIMULATION</span></div>
+  <div class="gate-tabs" id="gateTabs" role="tablist" aria-label="Choose a logic gate"></div>
+  <div class="sim-grid">
+    <div class="inputs" id="inputs"></div>
+    <div class="gate-wrap" id="gateWrap"></div>
+    <div class="output"><div class="output-label">Output X</div><div id="outputValue" class="output-value">0</div><div id="outputCaption" class="output-caption">LOW · FALSE</div></div>
+  </div>
+  <div class="controls">
+    <button class="btn" id="playBtn" aria-pressed="false">▶ Auto demo</button>
+    <button class="btn" id="resetBtn">↺ Reset</button>
+    <span class="hint"><kbd>A</kbd> <kbd>B</kbd> toggle · <kbd>←</kbd> <kbd>→</kbd> gate · <kbd>P</kbd> demo</span>
+  </div>
+  <div class="result-strip"><div class="metric"><span>INPUT A</span><strong id="metricA">0</strong></div><div class="metric"><span>INPUT B</span><strong id="metricB">0</strong></div><div class="metric"><span>BOOLEAN RESULT</span><strong id="metricResult">0</strong></div></div>
+  <div class="truth"><div class="panel-head" style="margin:20px 0 8px"><div><h3>Truth table</h3><div class="sub">Click any row to set the inputs · highlighted row = current state</div></div></div><table><thead id="truthHead"></thead><tbody id="truthBody"></tbody></table></div>
+  <div class="timing"><div class="panel-head" style="margin:22px 0 10px"><div><h3>Timing diagram</h3><div class="sub">Scrolls in real time — toggle the switches and watch the waveforms</div></div></div><svg id="timing" viewBox="0 0 600 170" role="img" aria-label="Timing diagram of inputs and output"></svg></div>
+</section>
+
+<aside class="panel explain reveal">
+  <div id="explainTop"></div>
+  <div class="explain-sym" id="explainSym"></div>
+  <div><div class="sub" style="margin-bottom:8px">BOOLEAN EXPRESSION</div><div class="formula" id="formula">X = A · B</div></div>
+  <div><div class="sub" style="margin-bottom:8px">WHERE IT IS USED</div><p class="description" id="useCase"></p></div>
+  <div class="try"><strong style="font-size:13px;color:var(--cyan)">Try this experiment</strong><p class="description" id="tryText" style="margin:6px 0 0"></p></div>
+</aside>
+</div>
+
+<h2 class="section-title reveal">Gate symbol reference</h2>
+<p class="section-sub reveal">The seven standard logic gate symbols. Click a card to load that gate into the simulator.</p>
+<div class="gallery reveal" id="gallery"></div>
+
+<div class="bottom">
+<div class="info-card reveal"><h3>What is Boolean logic?</h3><p>Boolean logic is a system of decision-making that uses only two values: 0 (LOW / FALSE) and 1 (HIGH / TRUE). Digital circuits use logic gates to process these binary values.</p></div>
+<div class="info-card reveal"><h3>Quick learning points</h3><ul><li>AND gives 1 only when both inputs are 1.</li><li>OR gives 1 when at least one input is 1.</li><li>NOT reverses the input.</li><li>The small circle (bubble) on a symbol means the output is inverted.</li><li>NAND and NOR are the opposites of AND and OR.</li><li>XOR gives 1 when inputs are different; XNOR when they are the same.</li></ul></div>
+</div>
+<div class="footer">LogicLab · Interactive Boolean Logic Demonstration · Built for learning</div>
+</main>
+
+<script>
+/* ---------------- gate data ---------------- */
+const gates={
+AND:{shape:"and",expr:"X = A · B",desc:"The AND gate produces output 1 only when both inputs A and B are 1. If either input is 0, the output is 0.",use:"Safety interlocks, control systems and conditions that must all be satisfied.",tryIt:"Start with both switches off, then turn on only A. Nothing happens until B is on too.",fn:(a,b)=>a&b},
+OR:{shape:"or",expr:"X = A + B",desc:"The OR gate produces output 1 when at least one input is 1. It produces 0 only when both inputs are 0.",use:"Alarm systems and circuits that respond to any one of several signals.",tryIt:"Turn on A, then turn on B as well. The output stays 1 as long as either switch is on.",fn:(a,b)=>a|b},
+NAND:{shape:"and",bubble:1,expr:"X = ¬(A · B)",desc:"The NAND gate is the opposite of AND. It produces 0 only when both inputs are 1; otherwise, the output is 1.",use:"Memory circuits and building many other digital logic functions.",tryIt:"The output starts at 1. Find the single combination that turns it off.",fn:(a,b)=>1-(a&b)},
+NOR:{shape:"or",bubble:1,expr:"X = ¬(A + B)",desc:"The NOR gate is the opposite of OR. It produces 1 only when both inputs are 0.",use:"Digital control circuits and logic functions built from universal gates.",tryIt:"The output is 1 only when everything is off. Turn on any switch and watch it drop.",fn:(a,b)=>1-(a|b)},
+XOR:{shape:"xor",expr:"X = A ⊕ B",desc:"The XOR (exclusive OR) gate produces 1 when the two inputs are different. It produces 0 when they are the same.",use:"Binary addition, parity checking and error detection.",tryIt:"Turn on A (output 1), then turn on B too. Output returns to 0 because the inputs match.",fn:(a,b)=>a^b},
+XNOR:{shape:"xor",bubble:1,expr:"X = ¬(A ⊕ B)",desc:"The XNOR gate produces 1 when both inputs are the same, and 0 when they are different.",use:"Equality checking and digital comparison circuits.",tryIt:"Output is 1 when A and B match (both off or both on). Make them differ to switch it off.",fn:(a,b)=>1-(a^b)},
+NOT:{shape:"not",bubble:1,one:1,expr:"X = ¬A",desc:"The NOT gate has one input. It reverses the input: 0 becomes 1, and 1 becomes 0.",use:"Signal inversion and creating the opposite of a digital condition.",tryIt:"Flip the single switch and watch the bubble invert the signal.",fn:(a)=>1-a}
+};
+const order=["AND","OR","NAND","NOR","XOR","XNOR","NOT"];
+
+/* ---------------- symbol geometry (standard distinctive-shape symbols) ---------------- */
+const orPath=dx=>`M${48+dx} 20 H${70+dx} C${100+dx} 20 ${122+dx} 38 ${134+dx} 60 C${122+dx} 82 ${100+dx} 100 ${70+dx} 100 H${48+dx} C${64+dx} 80 ${64+dx} 40 ${48+dx} 20 Z`;
+function geom(name){
+  const g=gates[name];
+  let body,tip,inX,extra="";
+  if(g.shape==="and"){body="M50 20 H90 A40 40 0 0 1 90 100 H50 Z";tip=130;inX=50}
+  else if(g.shape==="or"){body=orPath(0);tip=134;inX=58}
+  else if(g.shape==="xor"){body=orPath(10);tip=144;inX=58;extra="M48 100 C64 80 64 40 48 20"}
+  else {body="M58 26 V94 L118 60 Z";tip=118;inX=58}
+  return {body,tip,inX,extra,outStart:g.bubble?tip+12:tip,bubbleX:tip+6};
+}
+/* builds the full gate diagram. opts.mini = icon (no labels / flow) */
+function circuitSVG(name,opts={}){
+  const g=gates[name],s=geom(name),ys=g.one?[60]:[40,80];
+  const mini=!!opts.mini;
+  let h=`<svg class="${mini?'mini':'circuit'}" viewBox="${mini?'6 8 176 104':'0 0 205 120'}" ${mini?'aria-hidden="true"':`role="img" aria-label="${name} gate symbol"`}>`;
+  h+=`<g class="gg">`;
+  ys.forEach((y,i)=>{
+    const d=`M${mini?10:18} ${y} H${s.inX}`,k=i?'B':'A';
+    h+=`<path class="wire" data-w="${k}" d="${d}"/>`;
+    if(!mini)h+=`<path class="flow" data-w="${k}" d="${d}"/><text class="pin" x="1" y="${y+4}">${k}</text>`;
+  });
+  const od=`M${s.outStart} 60 H${mini?176:182}`;
+  h+=`<path class="wire out" data-w="X" d="${od}"/>`;
+  if(!mini)h+=`<path class="flow" data-w="X" d="${od}"/><text class="pin x" x="190" y="64">X</text>`;
+  h+=`<path class="gbody" d="${s.body}"/>`;
+  if(s.extra)h+=`<path class="gline" d="${s.extra}"/>`;
+  if(g.bubble)h+=`<circle class="gbubble" cx="${s.bubbleX}" cy="60" r="6"/>`;
+  h+=`</g></svg>`;
+  return h;
+}
+
+/* ---------------- state ---------------- */
+let selected="AND",A=0,B=0,playTimer=null,step=0;
+const $=id=>document.getElementById(id);
+const N=64; let hist=[];
+const cur=()=>gates[selected];
+const out=()=>cur().fn(A,B);
+
+/* ---------------- build UI pieces ---------------- */
+function buildTabs(){
+  $("gateTabs").innerHTML=order.map(n=>`<button class="gate-btn" role="tab" data-gate="${n}" aria-label="${n} gate">${circuitSVG(n,{mini:true})}<span>${n}</span></button>`).join("");
+  $("gateTabs").querySelectorAll("[data-gate]").forEach(b=>b.onclick=()=>select(b.dataset.gate));
+}
+function buildGallery(){
+  $("gallery").innerHTML=order.map(n=>`<button class="sym-card" data-gate="${n}" aria-label="Load ${n} gate in simulator">${circuitSVG(n)}<h4>${n}</h4><code>${gates[n].expr}</code><small>${gates[n].desc.split(". ")[0].replace(/\.$/,"")}.</small></button>`).join("");
+  $("gallery").querySelectorAll("[data-gate]").forEach(b=>b.onclick=()=>{select(b.dataset.gate);$("simulator").scrollIntoView({behavior:"smooth",block:"start"})});
+}
+function buildInputs(){
+  const sw=(k)=>`<div class="input-row"><span class="input-name">Input ${k}</span><button class="switch" id="switch${k}" role="switch" aria-label="Toggle input ${k}" aria-checked="false"><span class="bit">0</span></button></div>`;
+  $("inputs").innerHTML=sw("A")+(cur().one?"":sw("B"));
+  $("switchA").onclick=()=>{A=1-A;update(true)};
+  if(!cur().one)$("switchB").onclick=()=>{B=1-B;update(true)};
+}
+function buildTruth(){
+  const g=cur(),one=!!g.one;
+  $("truthHead").innerHTML=`<tr><th>Input A</th>${one?"":"<th>Input B</th>"}<th>Output X</th></tr>`;
+  const rows=one?[[0,0],[1,0]]:[[0,0],[0,1],[1,0],[1,1]];
+  $("truthBody").innerHTML=rows.map(([a,b])=>`<tr data-a="${a}" data-b="${b}"><td>${a}</td>${one?"":`<td>${b}</td>`}<td class="out">${g.fn(a,b)}</td></tr>`).join("");
+  $("truthBody").querySelectorAll("tr").forEach(r=>r.onclick=()=>{A=+r.dataset.a;if(!one)B=+r.dataset.b;update(true)});
+}
+function buildTiming(){
+  const lanes=cur().one?["A","X"]:["A","B","X"];
+  const H=lanes.length*50+20;
+  const svg=$("timing");svg.setAttribute("viewBox",`0 0 600 ${H}`);
+  let h="";
+  for(let i=0;i<=8;i++){const x=44+i*(552/8);h+=`<line class="tl-grid" x1="${x}" y1="6" x2="${x}" y2="${H-8}"/>`}
+  lanes.forEach((k,i)=>{
+    const col=k==="A"?"#5ee7f5":k==="B"?"#a78bfa":"#53e0a1",top=14+i*50;
+    h+=`<text class="tl-label" x="12" y="${top+27}" fill="${col}">${k}</text>`;
+    h+=`<line class="tl-grid" x1="44" y1="${top+34}" x2="596" y2="${top+34}"/>`;
+    h+=`<path id="tl${k}" fill="none" stroke="${col}" stroke-width="2.6" stroke-linejoin="round" ${k==="X"?'style="filter:drop-shadow(0 0 4px #53e0a1aa)"':''} d=""/>`;
+  });
+  svg.innerHTML=h;svg.dataset.lanes=lanes.join("");
+  hist=Array.from({length:N},()=>({A,B,X:out()}));
+  drawTiming();
+}
+function drawTiming(){
+  const lanes=$("timing").dataset.lanes.split("");
+  const dx=552/(N-1);
+  lanes.forEach((k,i)=>{
+    const top=14+i*50,y=v=>top+(v?4:34);
+    let d=`M44 ${y(hist[0][k])}`;
+    for(let j=1;j<N;j++){const x=(44+j*dx).toFixed(1);d+=` H${x} V${y(hist[j][k])}`}
+    $("tl"+k).setAttribute("d",d);
+  });
+}
+
+/* ---------------- select a gate (full rebuild) ---------------- */
+function select(name,silent){
+  selected=name;
+  if(cur().one)B=0;
+  document.querySelectorAll(".gate-btn").forEach(b=>{const on=b.dataset.gate===name;b.classList.toggle("active",on);b.setAttribute("aria-selected",on)});
+  document.querySelectorAll(".sym-card").forEach(b=>b.classList.toggle("active",b.dataset.gate===name));
+  $("gateWrap").innerHTML=circuitSVG(name);
+  $("explainTop").innerHTML=`<div class="fade"><div class="eyebrow">Understand the gate</div><h3 style="font-size:24px;margin:8px 0">${name} Gate</h3><p class="description">${cur().desc}</p></div>`;
+  $("explainSym").innerHTML=circuitSVG(name);
+  $("formula").textContent=cur().expr;
+  $("useCase").textContent=cur().use;
+  $("tryText").textContent=cur().tryIt;
+  buildInputs();buildTruth();buildTiming();
+  update(false);
+}
+
+/* ---------------- update live state (no rebuild) ---------------- */
+function applyCircuit(root,a,b,x){
+  root.querySelectorAll('[data-w="A"]').forEach(e=>e.classList.toggle("hot",!!a));
+  root.querySelectorAll('[data-w="B"]').forEach(e=>e.classList.toggle("hot",!!b));
+  root.querySelectorAll('[data-w="X"]').forEach(e=>e.classList.toggle("hot",!!x));
+  const gg=root.querySelector(".gg");if(gg)gg.classList.toggle("lit",!!x);
+}
+let lastOut=null;
+function update(user){
+  const g=cur(),x=out();
+  ["A","B"].forEach(k=>{const el=$("switch"+k);if(!el)return;const v=k==="A"?A:B;el.classList.toggle("on",!!v);el.setAttribute("aria-checked",!!v);el.firstChild.textContent=v});
+  applyCircuit($("gateWrap"),A,B,x);applyCircuit($("explainSym"),A,B,x);
+  const ov=$("outputValue");ov.textContent=x;ov.className="output-value"+(x?" one":"");
+  if(lastOut!==null&&lastOut!==x){ov.classList.add("bump");setTimeout(()=>ov.classList.remove("bump"),360)}
+  lastOut=x;
+  $("outputCaption").textContent=x?"HIGH · TRUE":"LOW · FALSE";
+  $("metricA").textContent=A;$("metricB").textContent=g.one?"—":B;$("metricResult").textContent=x;
+  document.querySelectorAll("#truthBody tr").forEach(r=>r.classList.toggle("current",+r.dataset.a===A&&(g.one||+r.dataset.b===B)));
+  if(user&&playTimer)stopPlay();
+}
+
+/* ---------------- timing sampler ---------------- */
+setInterval(()=>{hist.push({A,B:cur().one?0:B,X:out()});if(hist.length>N)hist.shift();if($("timing").dataset.lanes)drawTiming()},170);
+
+/* ---------------- auto demo ---------------- */
+function startPlay(){
+  $("playBtn").classList.add("on");$("playBtn").setAttribute("aria-pressed","true");$("playBtn").textContent="⏸ Pause demo";
+  playTimer=setInterval(()=>{
+    const seq=cur().one?[[0,0],[1,0]]:[[0,0],[0,1],[1,0],[1,1]];
+    step=(step+1)%seq.length;[A,B]=seq[step];update(false);
+  },1300);
+}
+function stopPlay(){clearInterval(playTimer);playTimer=null;$("playBtn").classList.remove("on");$("playBtn").setAttribute("aria-pressed","false");$("playBtn").textContent="▶ Auto demo"}
+$("playBtn").onclick=()=>playTimer?stopPlay():startPlay();
+$("resetBtn").onclick=()=>{stopPlay();A=0;B=0;step=0;update(false)};
+
+/* ---------------- keyboard ---------------- */
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  const k=e.key.toLowerCase();
+  if(k==="a"){A=1-A;update(true)}
+  else if(k==="b"&&!cur().one){B=1-B;update(true)}
+  else if(k==="p"){$("playBtn").click()}
+  else if(k==="arrowright"||k==="arrowleft"){
+    const i=order.indexOf(selected),n=order[(i+(k==="arrowright"?1:-1)+order.length)%order.length];
+    select(n);const t=document.querySelector(`.gate-btn[data-gate="${n}"]`);if(t)t.focus();e.preventDefault();
+  }
+});
+
+/* ---------------- pointer glow + reveal on scroll ---------------- */
+document.addEventListener("pointermove",e=>{
+  const el=e.target.closest&&e.target.closest(".panel,.sym-card");if(!el)return;
+  const r=el.getBoundingClientRect();el.style.setProperty("--mx",(e.clientX-r.left)+"px");el.style.setProperty("--my",(e.clientY-r.top)+"px");
+});
+const io="IntersectionObserver" in window?new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting){en.target.classList.add("in");io.unobserve(en.target)}}),{threshold:.08}):null;
+document.querySelectorAll(".reveal").forEach(el=>io?io.observe(el):el.classList.add("in"));
+
+/* ---------------- go ---------------- */
+buildTabs();buildGallery();select("AND");
+</script>
+</body>
+</html>
